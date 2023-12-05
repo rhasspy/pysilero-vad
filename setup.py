@@ -29,7 +29,7 @@ setup(
     description="Pre-packaged voice activity detector using silero-vad",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="http://github.com/rhasspy/silero-vad",
+    url="http://github.com/rhasspy/pysilero-vad",
     author="Michael Hansen",
     author_email="mike@rhasspy.org",
     license="MIT",
