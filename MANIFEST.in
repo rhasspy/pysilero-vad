@@ -1,0 +1,2 @@
+include requirements.txt
+include pysilero_vad/models/*.onnx
