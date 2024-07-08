@@ -2,7 +2,8 @@ import wave
 from pathlib import Path
 from typing import Union
 
-from pysilero_vad import SileroVoiceActivityDetector
+import pytest
+from pysilero_vad import SileroVoiceActivityDetector, InvalidChunkSizeError
 
 _DIR = Path(__file__).parent
 
@@ -20,10 +21,24 @@ def _load_wav(wav_path: Union[str, Path]) -> bytes:
 def test_silence() -> None:
     """Test VAD on recorded silence."""
     vad = SileroVoiceActivityDetector()
-    assert vad(_load_wav(_DIR / "silence.wav")) < 0.5
+    assert all(p < 0.5 for p in vad.process_chunks(_load_wav(_DIR / "silence.wav")))
 
 
 def test_speech() -> None:
     """Test VAD on recorded speech."""
     vad = SileroVoiceActivityDetector()
-    assert vad(_load_wav(_DIR / "speech.wav")) >= 0.5
+    assert any(p >= 0.5 for p in vad.process_chunks(_load_wav(_DIR / "speech.wav")))
+
+def test_invalid_chunk_size() -> None:
+    """Test that chunk size must be 512 samples."""
+    vad = SileroVoiceActivityDetector()
+
+    # Should work
+    vad(bytes(SileroVoiceActivityDetector.chunk_bytes()))
+
+    # Should fail
+    with pytest.raises(InvalidChunkSizeError):
+        vad(bytes(SileroVoiceActivityDetector.chunk_bytes() * 2))
+
+    with pytest.raises(InvalidChunkSizeError):
+        vad(bytes(SileroVoiceActivityDetector.chunk_bytes() // 2))

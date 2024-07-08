@@ -25,7 +25,7 @@ if requirements_path.is_file():
 
 setup(
     name="pysilero_vad",
-    version="1.0.0",
+    version="2.0.0",
     description="Pre-packaged voice activity detector using silero-vad",
     long_description=long_description,
     long_description_content_type="text/markdown",
