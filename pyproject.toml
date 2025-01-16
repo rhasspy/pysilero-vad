@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=62.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name        = "pysilero_vad"
+version     = "2.0.1"
+license     = {text = "MIT"}
+description = "Pre-packaged voice activity detector using silero-vad"
+readme      = "README.md"
+authors     = [
+    {name = "Michael Hansen", email = "mike@rhasspy.org"}
+]
+keywords    = ["voice", "activity", "vad"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Text Processing :: Linguistic",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+requires-python = ">=3.8.0"
+dependencies = [
+    "onnxruntime>=1.18.0,<2",
+    "numpy<2"
+]
+
+[project.urls]
+"Source Code" = "http://github.com/rhasspy/pysilero-vad"
+
+[tool.setuptools]
+platforms = ["any"]
+zip-safe  = true
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["pysilero_vad"]
+exclude = ["tests", "tests.*"]

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.1
+
+- Migrate to pyproject.toml
+
 ## 2.0.0
 
 - Update to Silero VAD v5
