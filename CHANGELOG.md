@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.0
+
+- Loosen dependencies
+- Add `process_array` function to allow processing numpy floating point audio directly
+
 ## 2.0.1
 
 - Migrate to pyproject.toml

@@ -73,6 +73,17 @@ class SileroVoiceActivityDetector:
 
         audio_array = np.frombuffer(audio, dtype=np.int16).astype(np.float32) / _MAX_WAV
 
+        return self.process_array(audio_array)
+
+    def process_array(self, audio_array: np.ndarray) -> float:
+        """Return probability of speech [0-1] in a single audio chunk.
+
+        Audio *must* be 512 float samples [0-1] of 16Khz mono.
+        """
+        if len(audio_array) != _CHUNK_SAMPLES:
+            # Window size is fixed at 512 samples in v5
+            raise InvalidChunkSizeError
+
         # Add batch dimension and context
         audio_array = np.concatenate(
             (self._context, audio_array[np.newaxis, :]), axis=1

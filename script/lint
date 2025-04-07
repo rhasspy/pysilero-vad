@@ -8,10 +8,21 @@ _PROGRAM_DIR = _DIR.parent
 _VENV_DIR = _PROGRAM_DIR / ".venv"
 _MODULE = _PROGRAM_DIR.name.replace("-", "_")
 _MODULE_DIR = _PROGRAM_DIR / _MODULE
+_TESTS_DIR = _PROGRAM_DIR / "tests"
 
 context = venv.EnvBuilder().ensure_directories(_VENV_DIR)
-subprocess.check_call([context.env_exe, "-m", "black", str(_MODULE_DIR), "--check"])
-subprocess.check_call([context.env_exe, "-m", "isort", str(_MODULE_DIR), "--check"])
-subprocess.check_call([context.env_exe, "-m", "flake8", str(_MODULE_DIR)])
-subprocess.check_call([context.env_exe, "-m", "pylint", str(_MODULE_DIR)])
-subprocess.check_call([context.env_exe, "-m", "mypy", str(_MODULE_DIR)])
+subprocess.check_call(
+    [context.env_exe, "-m", "black", str(_MODULE_DIR), str(_TESTS_DIR), "--check"]
+)
+subprocess.check_call(
+    [context.env_exe, "-m", "isort", str(_MODULE_DIR), str(_TESTS_DIR), "--check"]
+)
+subprocess.check_call(
+    [context.env_exe, "-m", "flake8", str(_MODULE_DIR), str(_TESTS_DIR)]
+)
+subprocess.check_call(
+    [context.env_exe, "-m", "pylint", str(_MODULE_DIR), str(_TESTS_DIR)]
+)
+subprocess.check_call(
+    [context.env_exe, "-m", "mypy", str(_MODULE_DIR), str(_TESTS_DIR)]
+)
