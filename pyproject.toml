@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name        = "pysilero_vad"
-version     = "2.1.0"
+version     = "2.1.1"
 license     = {text = "MIT"}
 description = "Pre-packaged voice activity detector using silero-vad"
 readme      = "README.md"
@@ -44,3 +44,14 @@ exclude = ["tests", "tests.*"]
 
 [tool.setuptools.package-data]
 pysilero_vad = ["models/silero_vad.onnx"]
+
+[project.optional-dependencies]
+dev = [
+    "black==25.1.0",
+    "flake8==7.3.0",
+    "isort==6.0.1",
+    "mypy==1.17.0",
+    "pylint==3.3.7",
+    "pytest==8.4.1",
+    "build==1.2.2",
+]
