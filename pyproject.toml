@@ -39,7 +39,7 @@ zip-safe  = true
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["pysilero_vad"]
+include = ["pysilero_vad", "pysilero_vad.*"]
 exclude = ["tests", "tests.*"]
 
 [tool.setuptools.package-data]
