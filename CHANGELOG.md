@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.1
+
+- Add subdirectories to pyproject.toml
+- Update dev dependencies
+- Clean up extra files
+
 ## 2.1.0
 
 - Loosen dependencies
