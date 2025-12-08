@@ -8,7 +8,11 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
     outputs:
       tag: ${{ steps.read_ver.outputs.tag }}
       file_ver: ${{ steps.read_ver.outputs.file_ver }}
@@ -17,24 +21,19 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: "3.12"
 
       - name: Install build tools
-        run: pip install build tomli
+        run: pip install setuptools build cibuildwheel==2.23.2
 
-      - name: Read version from pyproject.toml & verify tag
+      - name: Read version from setup.py & verify tag
         id: read_ver
         shell: python
         run: |
-          import os, sys
-          try:
-              import tomllib as toml   # Python 3.11+
-          except Exception:
-              import tomli as toml     # fallback
-
-          # Read pyproject version
-          with open("pyproject.toml","rb") as f:
-              ver = toml.load(f)["project"]["version"]
+          import os, sys, re, pathlib
+          text = pathlib.Path("setup.py").read_text()
+          m = re.search(r"version\s*=\s*[\"']([^\"']+)[\"']", text)
+          ver = m.group(1)
 
           # Extract tag from GITHUB_REF (e.g. "refs/tags/v1.2.3" -> "1.2.3")
           ref = os.environ["GITHUB_REF"]
@@ -46,7 +45,7 @@ jobs:
           tag = ref[len(prefix):]
 
           if tag != ver:
-              print(f"❌ Tag ({tag}) != pyproject.toml ({ver})", file=sys.stderr)
+              print(f"❌ Tag ({tag}) != setup.py ({ver})", file=sys.stderr)
               sys.exit(1)
 
           # Expose outputs
@@ -54,16 +53,33 @@ jobs:
               fh.write(f"tag={tag}\n")
               fh.write(f"file_ver={ver}\n")
 
-          print(f"✅ Version OK: tag={tag} matches pyproject.toml={ver}")
+          print(f"✅ Version OK: tag={tag} matches setup.py={ver}")
 
-      - name: Build dists
-        run: python -m build
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir dist
+        env:
+          CIBW_BUILD: "cp39-*"
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
+          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
+          CIBW_ARCHS: auto64
+          CIBW_TEST_REQUIRES: pytest syrupy
+          CIBW_TEST_COMMAND: python -m pytest -vv {project}/tests
 
-      - name: Upload dists
+          # Don't build PyPy and MUSL wheels for now
+          CIBW_SKIP: "pp* *-musllinux_*"
+
+      - name: Build sdist (once)
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: python -m build --sdist
+
+      - name: Upload wheels and sdist
         uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: dist/*
+          name: dist-${{ matrix.os }}
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+          if-no-files-found: error
 
   changelog:
     needs: build
@@ -140,9 +156,11 @@ jobs:
       id-token: write # required for PyPI Trusted Publishing (OIDC)
       contents: read
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download all dists
+        uses: actions/download-artifact@v4
         with:
-          name: dist
+          pattern: dist-*
+          merge-multiple: true
           path: dist
 
       - name: Publish to PyPI via OIDC
@@ -151,14 +169,16 @@ jobs:
           verbose: true
 
   github_release:
-    needs: [publish, changelog]
+    needs: [build, changelog, publish]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download all dists
+        uses: actions/download-artifact@v4
         with:
-          name: dist
+          pattern: dist-*
+          merge-multiple: true
           path: dist
       - uses: actions/download-artifact@v4
         with:
