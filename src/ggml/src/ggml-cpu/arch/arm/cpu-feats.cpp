@@ -16,6 +16,10 @@
 #define HWCAP2_SME (1 << 23)
 #endif
 
+#ifndef HWCAP2_SVE2
+#define HWCAP2_SVE2 0
+#endif
+
 struct aarch64_features {
     // has_neon not needed, aarch64 has NEON guaranteed
     bool has_dotprod     = false;
