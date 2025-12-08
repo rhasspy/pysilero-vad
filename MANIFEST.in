@@ -1,0 +1,6 @@
+recursive-include src *.cpp *.c *.hpp *.h
+include pysilero_vad/py.typed
+include pysilero_vad/models/ggml-silero-v6.2.0.bin
+
+include README.md
+include LICENSE.md

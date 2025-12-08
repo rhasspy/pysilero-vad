@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.0.0
+
+- Use ggml model instead of onnxruntime and numpy
+- Replace `process_array` function with `process_samples`
+
 ## 2.1.1
 
 - Add subdirectories to pyproject.toml

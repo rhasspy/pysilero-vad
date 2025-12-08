@@ -1,15 +1,17 @@
 import logging
+from array import array
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Final, Iterable, Union
 
-import numpy as np
-import onnxruntime
+# pylint: disable=no-name-in-module
+from .silero_vad import load_model as _load_model
+from .silero_vad import process_chunk as _process_chunk
+from .silero_vad import reset as _reset
 
-_RATE: Final = 16000  # Khz
 _MAX_WAV: Final = 32767
 _DIR = Path(__file__).parent
-_DEFAULT_ONNX_PATH = _DIR / "models" / "silero_vad.onnx"
-_CONTEXT_SIZE: Final = 64  # 16Khz
+_DEFAULT_MODEL_PATH = _DIR / "models" / "ggml-silero-v6.2.0.bin"
 _CHUNK_SAMPLES: Final = 512
 _CHUNK_BYTES: Final = _CHUNK_SAMPLES * 2  # 16-bit
 
@@ -26,20 +28,8 @@ class SileroVoiceActivityDetector:
     https://github.com/snakers4/silero-vad
     """
 
-    def __init__(self, onnx_path: Union[str, Path] = _DEFAULT_ONNX_PATH) -> None:
-        onnx_path = str(onnx_path)
-
-        opts = onnxruntime.SessionOptions()
-        opts.inter_op_num_threads = 1
-        opts.intra_op_num_threads = 1
-
-        self.session = onnxruntime.InferenceSession(
-            onnx_path, providers=["CPUExecutionProvider"], sess_options=opts
-        )
-
-        self._context = np.zeros((1, _CONTEXT_SIZE), dtype=np.float32)
-        self._state = np.zeros((2, 1, 128), dtype=np.float32)
-        self._sr = np.array(_RATE, dtype=np.int64)
+    def __init__(self, model_path: Union[str, Path] = _DEFAULT_MODEL_PATH) -> None:
+        self._vctx = _load_model(str(Path(model_path).absolute()))
 
     @staticmethod
     def chunk_samples() -> int:
@@ -53,16 +43,16 @@ class SileroVoiceActivityDetector:
 
     def reset(self) -> None:
         """Reset state."""
-        self._state = np.zeros((2, 1, 128)).astype("float32")
+        _reset(self._vctx)
 
-    def __call__(self, audio: bytes) -> float:
+    def __call__(self, audio: Union[bytes, bytearray, memoryview]) -> float:
         """Return probability of speech [0-1] in a single audio chunk.
 
         Audio *must* be 512 samples of 16Khz 16-bit mono PCM.
         """
         return self.process_chunk(audio)
 
-    def process_chunk(self, audio: bytes) -> float:
+    def process_chunk(self, audio: Union[bytes, bytearray, memoryview]) -> float:
         """Return probability of speech [0-1] in a single audio chunk.
 
         Audio *must* be 512 samples of 16Khz 16-bit mono PCM.
@@ -71,37 +61,24 @@ class SileroVoiceActivityDetector:
             # Window size is fixed at 512 samples in v5
             raise InvalidChunkSizeError
 
-        audio_array = np.frombuffer(audio, dtype=np.int16).astype(np.float32) / _MAX_WAV
+        audio_array = [sample / _MAX_WAV for sample in array("h", audio)]
 
-        return self.process_array(audio_array)
+        return self.process_samples(audio_array)
 
-    def process_array(self, audio_array: np.ndarray) -> float:
+    def process_samples(self, samples: Sequence[float]) -> float:
         """Return probability of speech [0-1] in a single audio chunk.
 
         Audio *must* be 512 float samples [0-1] of 16Khz mono.
         """
-        if len(audio_array) != _CHUNK_SAMPLES:
+        if len(samples) != _CHUNK_SAMPLES:
             # Window size is fixed at 512 samples in v5
             raise InvalidChunkSizeError
 
-        # Add batch dimension and context
-        audio_array = np.concatenate(
-            (self._context, audio_array[np.newaxis, :]), axis=1
-        )
-        self._context = audio_array[:, -_CONTEXT_SIZE:]
+        return _process_chunk(self._vctx, samples)
 
-        # ort_inputs = {"input": audio_array, "state": self._state, "sr": self._sr}
-        ort_inputs = {
-            "input": audio_array[:, : _CHUNK_SAMPLES + _CONTEXT_SIZE],
-            "state": self._state,
-            "sr": self._sr,
-        }
-        ort_outs = self.session.run(None, ort_inputs)
-        out, self._state = ort_outs
-
-        return out.squeeze()
-
-    def process_chunks(self, audio: bytes) -> Iterable[float]:
+    def process_chunks(
+        self, audio: Union[bytes, bytearray, memoryview]
+    ) -> Iterable[float]:
         """Return probability of speech in audio [0-1] for each chunk of audio.
 
         Audio must be 16Khz 16-bit mono PCM.

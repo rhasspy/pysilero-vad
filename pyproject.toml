@@ -2,56 +2,51 @@
 requires = ["setuptools>=62.3"]
 build-backend = "setuptools.build_meta"
 
-[project]
-name        = "pysilero_vad"
-version     = "2.1.1"
-license     = {text = "MIT"}
-description = "Pre-packaged voice activity detector using silero-vad"
-readme      = "README.md"
-authors     = [
-    {name = "Michael Hansen", email = "mike@rhasspy.org"}
-]
-keywords    = ["voice", "activity", "vad"]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "Topic :: Text Processing :: Linguistic",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-]
-requires-python = ">=3.8.0"
-dependencies = [
-    "onnxruntime>=1.18.0,<2",
-    "numpy",
-]
+# [project]
+# name        = "pysilero_vad"
+# version     = "3.0.0"
+# license     = {text = "MIT"}
+# description = "Pre-packaged voice activity detector using silero-vad"
+# readme      = "README.md"
+# authors     = [
+#     {name = "Michael Hansen", email = "mike@rhasspy.org"}
+# ]
+# keywords    = ["voice", "activity", "silero", "vad"]
+# classifiers = [
+#     "Development Status :: 3 - Alpha",
+#     "Intended Audience :: Developers",
+#     "Topic :: Text Processing :: Linguistic",
+#     "License :: OSI Approved :: MIT License",
+#     "Programming Language :: Python :: 3.9",
+#     "Programming Language :: Python :: 3.10",
+#     "Programming Language :: Python :: 3.11",
+#     "Programming Language :: Python :: 3.12",
+#     "Programming Language :: Python :: 3.13",
+# ]
+# requires-python = ">=3.9.0"
 
-[project.urls]
-"Source Code" = "http://github.com/rhasspy/pysilero-vad"
+# [project.urls]
+# "Source Code" = "http://github.com/rhasspy/pysilero-vad"
 
-[tool.setuptools]
-platforms = ["any"]
-zip-safe  = true
-include-package-data = true
+# [tool.setuptools]
+# platforms = ["any"]
+# zip-safe  = true
+# include-package-data = true
 
-[tool.setuptools.packages.find]
-include = ["pysilero_vad", "pysilero_vad.*"]
-exclude = ["tests", "tests.*"]
+# [tool.setuptools.packages.find]
+# include = ["pysilero_vad", "pysilero_vad.*"]
+# exclude = ["tests", "tests.*"]
 
-[tool.setuptools.package-data]
-pysilero_vad = ["models/silero_vad.onnx"]
+# [tool.setuptools.package-data]
+# pysilero_vad = ["models/ggml-silero-v6.2.0.bin"]
 
-[project.optional-dependencies]
-dev = [
-    "black==25.1.0",
-    "flake8==7.3.0",
-    "isort==6.0.1",
-    "mypy==1.17.0",
-    "pylint==3.3.7",
-    "pytest==8.4.1",
-    "build==1.2.2",
-]
+# [project.optional-dependencies]
+# dev = [
+#     "black",
+#     "flake8",
+#     "isort",
+#     "mypy",
+#     "pylint",
+#     "pytest",
+#     "build",
+# ]

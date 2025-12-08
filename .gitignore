@@ -17,3 +17,6 @@ __pycache__/
 /token.txt
 
 /dist/
+
+/*.so
+/pysilero_vad/*.so
