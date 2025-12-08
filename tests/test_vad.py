@@ -2,7 +2,6 @@ import wave
 from pathlib import Path
 from typing import Union
 
-import numpy as np
 import pytest
 
 from pysilero_vad import InvalidChunkSizeError, SileroVoiceActivityDetector
@@ -38,8 +37,8 @@ def test_invalid_chunk_size() -> None:
 
     # Should work
     vad(bytes(SileroVoiceActivityDetector.chunk_bytes()))
-    vad.process_array(
-        np.zeros(SileroVoiceActivityDetector.chunk_samples(), dtype=np.float32)
+    vad.process_samples(
+        [0.0 for _ in range(SileroVoiceActivityDetector.chunk_samples())]
     )
 
     # Should fail
@@ -50,11 +49,11 @@ def test_invalid_chunk_size() -> None:
         vad(bytes(SileroVoiceActivityDetector.chunk_bytes() // 2))
 
     with pytest.raises(InvalidChunkSizeError):
-        vad.process_array(
-            np.zeros(SileroVoiceActivityDetector.chunk_samples() * 2, dtype=np.float32)
+        vad.process_samples(
+            [0.0 for _ in range(SileroVoiceActivityDetector.chunk_samples() * 2)]
         )
 
     with pytest.raises(InvalidChunkSizeError):
-        vad.process_array(
-            np.zeros(SileroVoiceActivityDetector.chunk_samples() // 2, dtype=np.float32)
+        vad.process_samples(
+            [0.0 for _ in range(SileroVoiceActivityDetector.chunk_samples() // 2)]
         )
