@@ -11,7 +11,7 @@ from .silero_vad import reset as _reset
 
 _MAX_WAV: Final = 32767
 _DIR = Path(__file__).parent
-_DEFAULT_MODEL_PATH = _DIR / "models" / "ggml-silero-v6.2.0.bin"
+_DEFAULT_MODEL_PATH = _DIR / "ggml-silero-v6.2.0.bin"
 _CHUNK_SAMPLES: Final = 512
 _CHUNK_BYTES: Final = _CHUNK_SAMPLES * 2  # 16-bit
 
