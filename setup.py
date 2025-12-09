@@ -22,26 +22,28 @@ version = "3.0.1"
 class BuildExt(build_ext):
     def build_extensions(self):
         compiler = self.compiler
-        orig_compile = compiler._compile  # save original
 
-        def new_compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
-            extra = list(extra_postargs or [])
-            is_cpp = src.endswith((".cpp", ".cc", ".cxx"))
+        if compiler.compiler_type == "msvc":
+            # MSVC (Windows)
+            opts = getattr(compiler, "compile_options", [])
+            dbg_opts = getattr(compiler, "compile_options_debug", [])
 
-            # Only add C++17 for C++ sources
-            if compiler.compiler_type == "msvc":
-                # MSVC: /std:c++17
-                for flag in ("/O2", "/EHsc"):
-                    if flag not in extra:
-                        extra.append(flag)
+            if not any("/std:c++" in opt for opt in opts):
+                opts.append("/std:c++17")
+            if not any("/std:c++" in opt for opt in dbg_opts):
+                dbg_opts.append("/std:c++17")
 
-                if is_cpp:
-                    # CXX
-                    if not any(a.startswith("/std:c++") for a in extra):
-                        extra.append("/std:c++17")
+            compiler.compile_options = opts
+            compiler.compile_options_debug = dbg_opts
+        elif hasattr(compiler, "_compile"):
+            # GCC/Clang (Linux, MacOS)
+            orig_compile = compiler._compile  # save original
 
-            else:
-                # GCC/Clang: -std=c++17
+            def new_compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
+                extra = list(extra_postargs or [])
+                is_cpp = src.endswith((".cpp", ".cc", ".cxx"))
+
+                # Only add C++17 for C++ sources
                 for flag in ("-O3", "-Wno-unused-function"):
                     if flag not in extra:
                         extra.append(flag)
@@ -51,11 +53,11 @@ class BuildExt(build_ext):
                     if not any(a.startswith("-std=c++") for a in extra):
                         extra.append("-std=c++17")
 
-            # Call the original compiler with our tweaked flags
-            return orig_compile(obj, src, ext, cc_args, extra, pp_opts)
+                # Call the original compiler with our tweaked flags
+                return orig_compile(obj, src, ext, cc_args, extra, pp_opts)
 
-        # Monkeypatch the compiler
-        compiler._compile = new_compile
+            # Monkeypatch the compiler
+            compiler._compile = new_compile
 
         # Now run the normal build_ext logic
         super().build_extensions()
