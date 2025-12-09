@@ -25,6 +25,28 @@
 
 #define WHISPER_MAX_NODES 4096
 
+#ifdef _MSC_VER
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+static std::wstring utf8_to_wstring(const char *utf8) {
+    if (!utf8) {
+        return std::wstring();
+    }
+
+    int len = MultiByteToWideChar(CP_UTF8, 0, utf8,
+                                  -1, // input is NUL-terminated
+                                  nullptr, 0);
+    if (len <= 0) {
+        return std::wstring();
+    }
+
+    std::wstring w(len - 1, L'\0'); // exclude terminating NUL
+    MultiByteToWideChar(CP_UTF8, 0, utf8, -1, w.data(), len - 1);
+    return w;
+}
+#endif
+
 enum vad_tensor {
     VAD_TENSOR_STFT_BASIS,
     VAD_TENSOR_ENC_0_WEIGHT,
@@ -730,8 +752,7 @@ whisper_vad_init_with_params(struct whisper_model_loader *loader,
 struct whisper_vad_context *whisper_vad_init_from_file_with_params(
     const char *path_model, struct whisper_vad_context_params params) {
 #ifdef _MSC_VER
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-    std::wstring path_model_wide = converter.from_bytes(path_model);
+    std::wstring path_model_wide = utf8_to_wstring(path_model);
     auto fin = std::ifstream(path_model_wide, std::ios::binary);
 #else
     auto fin = std::ifstream(path_model, std::ios::binary);
