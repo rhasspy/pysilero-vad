@@ -2,6 +2,7 @@
 name: Release (PyPI + GitHub)
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*.*.*" # e.g. v1.2.3
@@ -12,7 +13,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm]
+        os:
+          - ubuntu-latest # Linux x86_64
+          - ubuntu-24.04-arm # Linux aarch64
+          - macos-13 # macOS Intel (builds universal2 wheels)
+          - windows-latest # Windows x86_64
     outputs:
       tag: ${{ steps.read_ver.outputs.tag }}
       file_ver: ${{ steps.read_ver.outputs.file_ver }}
@@ -28,6 +33,7 @@ jobs:
 
       - name: Read version from setup.py & verify tag
         id: read_ver
+        if: github.event_name != 'workflow_dispatch' # only check on tag
         shell: python
         run: |
           import os, sys, re, pathlib
@@ -58,10 +64,20 @@ jobs:
       - name: Build wheels
         run: python -m cibuildwheel --output-dir dist
         env:
+          # Only build for Python 3.9 we're using the stable ABI
           CIBW_BUILD: "cp39-*"
+
+          # Linux
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
           CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
           CIBW_ARCHS: auto64
+
+          # macOS: build universal2 wheels (x86_64 + arm64) on macos-13
+          CIBW_ARCHS_MACOS: universal2
+
+          # Windows: default is AMD64; explicit for clarity
+          CIBW_ARCHS_WINDOWS: AMD64
+
           CIBW_TEST_REQUIRES: pytest
           CIBW_TEST_COMMAND: python -m pytest -vv {project}/tests
 
@@ -84,6 +100,7 @@ jobs:
   changelog:
     needs: build
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' # only check on tag
     steps:
       - uses: actions/checkout@v4
 
@@ -151,6 +168,7 @@ jobs:
   publish:
     needs: [build, changelog]
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' # only publish on tag
     environment: pypi
     permissions:
       id-token: write # required for PyPI Trusted Publishing (OIDC)
@@ -171,6 +189,7 @@ jobs:
   github_release:
     needs: [build, changelog, publish]
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' # only release on tag
     permissions:
       contents: write
     steps:

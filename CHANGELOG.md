@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.1
+
+- Set C++ std version for non-Linux OSes
+
 ## 3.0.0
 
 - Use ggml model instead of onnxruntime and numpy

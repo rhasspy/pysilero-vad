@@ -11,7 +11,7 @@ _SRC_DIR = _DIR / "src"
 _GGML_DIR = _SRC_DIR / "ggml"
 _GGML_SRC_DIR = _GGML_DIR / "src"
 
-version = "3.0.0"
+version = "3.0.1"
 
 
 # -----------------------------------------------------------------------------
@@ -93,7 +93,7 @@ ext_modules = [
             str(_GGML_SRC_DIR / "ggml-cpu"),
             str(_SRC_DIR),
         ],
-        extra_compile_args=["-O3", "-Wno-unused-function"],
+        extra_compile_args=["-O3", "-std=c++17", "-Wno-unused-function"],
     ),
 ]
 
