@@ -18,24 +18,12 @@ version = "3.0.1"
 # -----------------------------------------------------------------------------
 
 
-# Monkey patch the compiler because Mac and Windows have to be different 🫠
+# Monkey patch the compiler because Mac has to be different 🫠
 class BuildExt(build_ext):
     def build_extensions(self):
         compiler = self.compiler
 
-        if compiler.compiler_type == "msvc":
-            # MSVC (Windows)
-            opts = getattr(compiler, "compile_options", [])
-            dbg_opts = getattr(compiler, "compile_options_debug", [])
-
-            if not any("/std:c++" in opt for opt in opts):
-                opts.append("/std:c++17")
-            if not any("/std:c++" in opt for opt in dbg_opts):
-                dbg_opts.append("/std:c++17")
-
-            compiler.compile_options = opts
-            compiler.compile_options_debug = dbg_opts
-        elif hasattr(compiler, "_compile"):
+        if hasattr(compiler, "_compile"):
             # GCC/Clang (Linux, MacOS)
             orig_compile = compiler._compile  # save original
 
@@ -44,10 +32,6 @@ class BuildExt(build_ext):
                 is_cpp = src.endswith((".cpp", ".cc", ".cxx"))
 
                 # Only add C++17 for C++ sources
-                for flag in ("-O3", "-Wno-unused-function"):
-                    if flag not in extra:
-                        extra.append(flag)
-
                 if is_cpp:
                     # CXX
                     if not any(a.startswith("-std=c++") for a in extra):
@@ -121,6 +105,13 @@ sources.extend(
 
 # -----------------------------------------------------------------------------
 
+if os.name == "nt":
+    # Assume MSVC on Windows
+    extra_compile_args = ["/O2", "/std:c++17"]
+else:
+    # Assume GCC/Clang on Linux/MacOS
+    extra_compile_args = ["-O3", "-Wno-unused-function"]
+
 ext_modules = [
     Extension(
         name="pysilero_vad.silero_vad",
@@ -141,6 +132,7 @@ ext_modules = [
             str(_GGML_SRC_DIR / "ggml-cpu"),
             str(_SRC_DIR),
         ],
+        extra_compile_args=extra_compile_args,
     ),
 ]
 
