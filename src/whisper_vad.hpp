@@ -27,6 +27,7 @@
 
 #ifdef _MSC_VER
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX //  prevent min/max macros
 #include <windows.h>
 
 static std::wstring utf8_to_wstring(const char *utf8) {
