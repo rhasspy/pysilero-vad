@@ -1,10 +1,12 @@
 """Setup for pysilero-vad."""
 
 import platform
+import sys
 from pathlib import Path
 
 # Available at setup time due to pyproject.toml
 from setuptools import setup, Extension
+from setuptools.command.build_ext import build_ext
 
 _DIR = Path(__file__).parent
 _SRC_DIR = _DIR / "src"
@@ -12,6 +14,34 @@ _GGML_DIR = _SRC_DIR / "ggml"
 _GGML_SRC_DIR = _GGML_DIR / "src"
 
 version = "3.0.1"
+
+# -----------------------------------------------------------------------------
+
+
+# Work around clang complaining about c++17 for .c files
+class BuildExt(build_ext):
+    def build_extensions(self):
+        for ext in self.extensions:
+            new_args = ["-O3"]
+            if sys.platform == "win32":
+                # MSVC flags
+                cxx_flags = ["/std:c++17"]
+                c_flags = []
+            else:
+                # GCC/Clang flags
+                cxx_flags = ["-std=c++17"]
+                c_flags = ["-std=c11"]
+
+            for src in ext.sources:
+                if src.endswith(".c"):
+                    new_args.extend(c_flags)
+                else:
+                    new_args.extend(cxx_flags)
+
+            # append per-source flags properly
+            ext.extra_compile_args = new_args
+
+        super().build_extensions()
 
 
 # -----------------------------------------------------------------------------
@@ -93,8 +123,7 @@ ext_modules = [
             str(_GGML_SRC_DIR / "ggml-cpu"),
             str(_SRC_DIR),
         ],
-        extra_compile_args={"c": ["-O3", "-std=c11"], "cxx": ["-O3", "-std=c++17"]},
     ),
 ]
 
-setup(ext_modules=ext_modules)
+setup(ext_modules=ext_modules, cmdclass={"build_ext": BuildExt})
