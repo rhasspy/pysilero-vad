@@ -108,9 +108,11 @@ sources.extend(
 if os.name == "nt":
     # Assume MSVC on Windows
     extra_compile_args = ["/O2", "/std:c++20"]
+    libraries = ["advapi32"]  # for Reg* crap
 else:
     # Assume GCC/Clang on Linux/MacOS
     extra_compile_args = ["-O3", "-Wno-unused-function"]
+    libraries = []
 
 ext_modules = [
     Extension(
@@ -133,6 +135,7 @@ ext_modules = [
             str(_SRC_DIR),
         ],
         extra_compile_args=extra_compile_args,
+        libraries=libraries,
     ),
 ]
 
