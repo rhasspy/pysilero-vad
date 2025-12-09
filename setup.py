@@ -1,7 +1,7 @@
 """Setup for pysilero-vad."""
 
 import platform
-import sys
+import os
 from pathlib import Path
 
 # Available at setup time due to pyproject.toml
@@ -33,18 +33,17 @@ class BuildExt(build_ext):
         else:
             # GCC / Clang (Linux, macOS)
             cxx_flags = [
-                "-std=c++17",  # C++17
                 "-O3",  # optimization
-                "-x",
-                "c++",  # treat all inputs as C++ (even .c)
             ]
+            cxx_env_flags = os.environ.get("CXXFLAGS", "")
+            if "-std=c++" not in cxx_env_flags:
+                cxx_env_flags = f"{cxx_env_flags} -std=c++17".strip()
+                os.environ["CXXFLAGS"] = cxx_env_flags
 
         for ext in self.extensions:
             extra = list(getattr(ext, "extra_compile_args", []) or [])
             extra.extend(cxx_flags)
             ext.extra_compile_args = extra
-
-            # hint to the build system that this is C++
             ext.language = "c++"
 
         super().build_extensions()
