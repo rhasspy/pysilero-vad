@@ -14,10 +14,11 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-latest # Linux x86_64
-          - ubuntu-24.04-arm # Linux aarch64
-          - macos-latest # macOS Intel (builds universal2 wheels)
-          - windows-latest # Windows x86_64
+          - windows-latest
+          # - ubuntu-latest # Linux x86_64
+          # - ubuntu-24.04-arm # Linux aarch64
+          # - macos-latest # macOS Intel (builds universal2 wheels)
+          # - windows-latest # Windows x86_64
     outputs:
       tag: ${{ steps.read_ver.outputs.tag }}
       file_ver: ${{ steps.read_ver.outputs.file_ver }}
