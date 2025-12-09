@@ -18,39 +18,46 @@ version = "3.0.1"
 # -----------------------------------------------------------------------------
 
 
+# Monkey patch the compiler because Mac and Windows have to be different 🫠
 class BuildExt(build_ext):
     def build_extensions(self):
-        ct = self.compiler.compiler_type
+        compiler = self.compiler
+        orig_compile = compiler._compile  # save original
 
-        if ct == "msvc":
-            # MSVC (Windows)
-            cxx_flags = [
-                "/std:c++17",  # C++17
-                "/O2",  # optimization
-                "/EHsc",  # C++ exceptions
-                "/TP",  # treat all .c as C++
-            ]
-        else:
-            # GCC / Clang (Linux, macOS)
-            # Unix (Linux, macOS) – use the C++ compiler for .c files too
-            # UnixCCompiler has compiler_so (for C) and compiler_cxx (for C++).
-            # Make C compilations use the C++ compiler.
-            if hasattr(self.compiler, "compiler_cxx"):
-                # e.g. ['clang', ...] vs ['clang++', ...]
-                self.compiler.compiler_so = list(self.compiler.compiler_cxx)
+        def new_compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
+            extra = list(extra_postargs or [])
+            is_cpp = src.endswith((".cpp", ".cc", ".cxx"))
 
-            cxx_flags = [
-                "-std=c++17",
-                "-O3",  # optimization
-                "-Wno-unused-function",  # remove annoying warnings
-            ]
+            # Only add C++17 for C++ sources
+            if compiler.compiler_type == "msvc":
+                # MSVC: /std:c++17
+                for flag in ("/O2", "/EHsc"):
+                    if flag not in extra:
+                        extra.append(flag)
 
-            for ext in self.extensions:
-                extra = list(getattr(ext, "extra_compile_args", []) or [])
-                extra.extend(cxx_flags)
-                ext.extra_compile_args = extra
-                ext.language = "c++"
+                if is_cpp:
+                    # CXX
+                    if not any(a.startswith("/std:c++") for a in extra):
+                        extra.append("/std:c++17")
 
+            else:
+                # GCC/Clang: -std=c++17
+                for flag in ("-O3", "-Wno-unused-function"):
+                    if flag not in extra:
+                        extra.append(flag)
+
+                if is_cpp:
+                    # CXX
+                    if not any(a.startswith("-std=c++") for a in extra):
+                        extra.append("-std=c++17")
+
+            # Call the original compiler with our tweaked flags
+            return orig_compile(obj, src, ext, cc_args, extra, pp_opts)
+
+        # Monkeypatch the compiler
+        compiler._compile = new_compile
+
+        # Now run the normal build_ext logic
         super().build_extensions()
 
 
@@ -135,4 +142,4 @@ ext_modules = [
     ),
 ]
 
-setup(ext_modules=ext_modules, cmdclass={"build_ext": BuildExt})
+setup(version=version, ext_modules=ext_modules, cmdclass={"build_ext": BuildExt})
