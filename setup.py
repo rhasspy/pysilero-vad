@@ -32,19 +32,24 @@ class BuildExt(build_ext):
             ]
         else:
             # GCC / Clang (Linux, macOS)
-            cxx_flags = [
-                "-O3",  # optimization
-            ]
-            cxx_env_flags = os.environ.get("CXXFLAGS", "")
-            if "-std=c++" not in cxx_env_flags:
-                cxx_env_flags = f"{cxx_env_flags} -std=c++17".strip()
-                os.environ["CXXFLAGS"] = cxx_env_flags
+            # Unix (Linux, macOS) – use the C++ compiler for .c files too
+            # UnixCCompiler has compiler_so (for C) and compiler_cxx (for C++).
+            # Make C compilations use the C++ compiler.
+            if hasattr(self.compiler, "compiler_cxx"):
+                # e.g. ['clang', ...] vs ['clang++', ...]
+                self.compiler.compiler_so = list(self.compiler.compiler_cxx)
 
-        for ext in self.extensions:
-            extra = list(getattr(ext, "extra_compile_args", []) or [])
-            extra.extend(cxx_flags)
-            ext.extra_compile_args = extra
-            ext.language = "c++"
+            cxx_flags = [
+                "-std=c++17",
+                "-O3",  # optimization
+                "-Wno-unused-function",  # remove annoying warnings
+            ]
+
+            for ext in self.extensions:
+                extra = list(getattr(ext, "extra_compile_args", []) or [])
+                extra.extend(cxx_flags)
+                ext.extra_compile_args = extra
+                ext.language = "c++"
 
         super().build_extensions()
 
