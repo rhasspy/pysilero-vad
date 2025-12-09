@@ -31,11 +31,11 @@ class BuildExt(build_ext):
                 extra = list(extra_postargs or [])
                 is_cpp = src.endswith((".cpp", ".cc", ".cxx"))
 
-                # Only add C++17 for C++ sources
+                # Only add C++20 for C++ sources
                 if is_cpp:
                     # CXX
                     if not any(a.startswith("-std=c++") for a in extra):
-                        extra.append("-std=c++17")
+                        extra.append("-std=c++20")
 
                 # Call the original compiler with our tweaked flags
                 return orig_compile(obj, src, ext, cc_args, extra, pp_opts)
@@ -107,7 +107,7 @@ sources.extend(
 
 if os.name == "nt":
     # Assume MSVC on Windows
-    extra_compile_args = ["/O2", "/std:c++17"]
+    extra_compile_args = ["/O2", "/std:c++20"]
 else:
     # Assume GCC/Clang on Linux/MacOS
     extra_compile_args = ["-O3", "-Wno-unused-function"]
