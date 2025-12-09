@@ -14,11 +14,10 @@ jobs:
     strategy:
       matrix:
         os:
-          - macos-latest
-          # - ubuntu-latest # Linux x86_64
-          # - ubuntu-24.04-arm # Linux aarch64
-          # - macos-latest # macOS Intel (builds universal2 wheels)
-          # - windows-latest # Windows x86_64
+          - ubuntu-latest # Linux x86_64
+          - ubuntu-24.04-arm # Linux aarch64
+          - macos-latest # macOS Intel (builds universal2 wheels)
+          - windows-latest # Windows x86_64
     outputs:
       tag: ${{ steps.read_ver.outputs.tag }}
       file_ver: ${{ steps.read_ver.outputs.file_ver }}
@@ -77,7 +76,7 @@ jobs:
           CIBW_ARCHS_MACOS: arm64
 
           # std::filesystem needs macOS 10.15+
-          CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=10.15"
+          CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=11.0"
 
           # Windows: default is AMD64; explicit for clarity
           CIBW_ARCHS_WINDOWS: AMD64
