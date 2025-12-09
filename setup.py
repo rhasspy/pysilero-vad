@@ -76,7 +76,7 @@ sources.extend(
             "hbm.cpp",
             "ops.cpp",
             "quants.c",
-            "repack.cpp",
+            # "repack.cpp",
             "traits.cpp",
             "unary-ops.cpp",
             "vec.cpp",
