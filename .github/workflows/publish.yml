@@ -75,6 +75,9 @@ jobs:
           # macOS: build universal2 wheels (x86_64 + arm64) on macos
           CIBW_ARCHS_MACOS: universal2
 
+          # std::filesystem needs macOS 10.15+
+          CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=10.15"
+
           # Windows: default is AMD64; explicit for clarity
           CIBW_ARCHS_WINDOWS: AMD64
 
