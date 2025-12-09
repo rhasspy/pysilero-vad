@@ -18,28 +18,34 @@ version = "3.0.1"
 # -----------------------------------------------------------------------------
 
 
-# Work around clang complaining about c++17 for .c files
 class BuildExt(build_ext):
     def build_extensions(self):
+        ct = self.compiler.compiler_type
+
+        if ct == "msvc":
+            # MSVC (Windows)
+            cxx_flags = [
+                "/std:c++17",  # C++17
+                "/O2",  # optimization
+                "/EHsc",  # C++ exceptions
+                "/TP",  # treat all .c as C++
+            ]
+        else:
+            # GCC / Clang (Linux, macOS)
+            cxx_flags = [
+                "-std=c++17",  # C++17
+                "-O3",  # optimization
+                "-x",
+                "c++",  # treat all inputs as C++ (even .c)
+            ]
+
         for ext in self.extensions:
-            new_args = ["-O3"]
-            if sys.platform == "win32":
-                # MSVC flags
-                cxx_flags = ["/std:c++17"]
-                c_flags = []
-            else:
-                # GCC/Clang flags
-                cxx_flags = ["-std=c++17"]
-                c_flags = ["-std=c11"]
+            extra = list(getattr(ext, "extra_compile_args", []) or [])
+            extra.extend(cxx_flags)
+            ext.extra_compile_args = extra
 
-            for src in ext.sources:
-                if src.endswith(".c"):
-                    new_args.extend(c_flags)
-                else:
-                    new_args.extend(cxx_flags)
-
-            # append per-source flags properly
-            ext.extra_compile_args = new_args
+            # hint to the build system that this is C++
+            ext.language = "c++"
 
         super().build_extensions()
 
@@ -105,7 +111,6 @@ sources.extend(
 ext_modules = [
     Extension(
         name="pysilero_vad.silero_vad",
-        language="c++",
         py_limited_api=True,
         sources=sorted(str(p.relative_to(_DIR)) for p in sources),
         define_macros=[
