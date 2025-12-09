@@ -51,7 +51,7 @@ jobs:
           tag = ref[len(prefix):]
 
           if tag != ver:
-              print(f"❌ Tag ({tag}) != setup.py ({ver})", file=sys.stderr)
+              print(f"Tag ({tag}) != setup.py ({ver})", file=sys.stderr)
               sys.exit(1)
 
           # Expose outputs
@@ -59,7 +59,7 @@ jobs:
               fh.write(f"tag={tag}\n")
               fh.write(f"file_ver={ver}\n")
 
-          print(f"✅ Version OK: tag={tag} matches setup.py={ver}")
+          print(f"Version OK: tag={tag} matches setup.py={ver}")
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir dist
