@@ -178,10 +178,10 @@ static PyMethodDef silero_vad_methods[] = {
 
 static struct PyModuleDef silero_vad_module = {
     PyModuleDef_HEAD_INIT,
-    .m_name = "_silero_vad",
-    .m_doc = "Silero VAD ggml backend (abi3, limited API).",
-    .m_size = -1,
-    .m_methods = silero_vad_methods,
+    /*.m_name =*/"_silero_vad",
+    /*.m_doc =*/"Silero VAD ggml backend (abi3, limited API).",
+    /*.m_size =*/-1,
+    /*.m_methods =*/silero_vad_methods,
 };
 
 PyMODINIT_FUNC PyInit_silero_vad(void) {
