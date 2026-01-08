@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.0
+
+- Require SSE4.1 on x86_64
+- Use fast math optimizations on non-Windows platforms
+
 ## 3.0.1
 
 - Set C++ std version for non-Linux OSes

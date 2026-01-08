@@ -13,7 +13,7 @@ _SRC_DIR = _DIR / "src"
 _GGML_DIR = _SRC_DIR / "ggml"
 _GGML_SRC_DIR = _GGML_DIR / "src"
 
-version = "3.0.1"
+version = "3.1.0"
 
 # -----------------------------------------------------------------------------
 
@@ -111,8 +111,22 @@ if os.name == "nt":
     libraries = ["advapi32"]  # for Reg* crap
 else:
     # Assume GCC/Clang on Linux/MacOS
-    extra_compile_args = ["-O3", "-Wno-unused-function"]
+    extra_compile_args = [
+        "-O3",
+        "-Wno-unused-function",
+        "-ffast-math",
+        "-fno-math-errno",
+        "-fno-finite-math-only",
+    ]
     libraries = []
+
+    if arch == "x86":
+        # Assume SSE4.2 baseline
+        extra_compile_args += [
+            "-msse4.2",  # enables SSE2/SSE3/SSSE3/SSE4.1 as well
+            "-mpopcnt",  # part of the de-facto x86-64-v2 baseline
+            "-mtune=generic",  # good across Intel/AMD
+        ]
 
 ext_modules = [
     Extension(
