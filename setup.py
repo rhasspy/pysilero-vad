@@ -121,10 +121,9 @@ else:
     libraries = []
 
     if arch == "x86":
-        # Assume SSE4.2 baseline
+        # Assume SSE2 baseline
         extra_compile_args += [
-            "-msse4.2",  # enables SSE2/SSE3/SSSE3/SSE4.1 as well
-            "-mpopcnt",  # part of the de-facto x86-64-v2 baseline
+            "-msse2",
             "-mtune=generic",  # good across Intel/AMD
         ]
 

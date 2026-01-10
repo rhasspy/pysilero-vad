@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.2.0
+
+- Only require SSE2 on x86_64
+
 ## 3.1.0
 
 - Require SSE4.1 on x86_64
