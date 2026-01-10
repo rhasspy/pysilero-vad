@@ -13,7 +13,7 @@ _SRC_DIR = _DIR / "src"
 _GGML_DIR = _SRC_DIR / "ggml"
 _GGML_SRC_DIR = _GGML_DIR / "src"
 
-version = "3.1.0"
+version = "3.2.0"
 
 # -----------------------------------------------------------------------------
 
