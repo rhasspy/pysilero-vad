@@ -127,6 +127,9 @@ else:
             "-mtune=generic",  # good across Intel/AMD
         ]
 
+    if "armv7" in machine:
+        extra_compile_args += ["-mfp16-format=ieee"]
+
 ext_modules = [
     Extension(
         name="pysilero_vad.silero_vad",
