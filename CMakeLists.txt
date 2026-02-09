@@ -1,0 +1,57 @@
+cmake_minimum_required(VERSION 3.14)
+project(pysilero_vad VERSION 3.2.0 LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+# Find Python
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+
+# Build GGML as a subdirectory
+# This will respect all GGML_* options passed via cmake.define in pyproject.toml
+add_subdirectory(src/ggml)
+
+# Create the Python extension module
+Python_add_library(silero_vad MODULE WITH_SOABI
+    src/py_silero_vad.cpp
+)
+
+# Link against GGML libraries
+target_link_libraries(silero_vad PRIVATE ggml ggml-base ggml-cpu)
+
+# Include directories
+target_include_directories(silero_vad PRIVATE
+    src
+    src/ggml/include
+    src/ggml/src
+    src/ggml/src/ggml-cpu
+)
+
+# Set the output name and location
+set_target_properties(silero_vad PROPERTIES
+    OUTPUT_NAME "silero_vad"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pysilero_vad"
+)
+
+# Add version and commit info
+target_compile_definitions(silero_vad PRIVATE
+    VERSION_INFO="${PROJECT_VERSION}"
+)
+
+# Install the module
+install(TARGETS silero_vad
+    LIBRARY DESTINATION pysilero_vad
+    COMPONENT python_modules
+)
+
+# Install Python package files (__init__.py, model file, etc.)
+install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pysilero_vad/
+    DESTINATION pysilero_vad
+    FILES_MATCHING
+    PATTERN "*.py"
+    PATTERN "*.bin"
+    PATTERN "__pycache__" EXCLUDE
+)
