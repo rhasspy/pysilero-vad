@@ -13,4 +13,4 @@ if _VENV_DIR.exists():
 else:
     python_exe = "python3"
 
-subprocess.check_call([python_exe, "-m", "build", "--wheel", "--sdist"])
+subprocess.check_call([python_exe, "-m", "build", "--sdist"])

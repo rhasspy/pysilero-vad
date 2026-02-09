@@ -1,3 +1,64 @@
 [build-system]
-requires = ["setuptools>=62.3"]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core>=0.10.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "pysilero-vad"
+version = "3.3.0"
+description = "Pre-packaged voice activity detector using silero-vad"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Michael Hansen", email = "mike@rhasspy.org"}
+]
+keywords = ["voice", "activity", "silero", "vad"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Text Processing :: Linguistic",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+requires-python = ">=3.9"
+
+[project.urls]
+Homepage = "http://github.com/rhasspy/pysilero-vad"
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "flake8",
+    "isort",
+    "mypy",
+    "pylint",
+    "pytest",
+    "build",
+]
+
+[tool.scikit-build]
+cmake.minimum-version = "3.14"
+cmake.build-type = "Release"
+# Use src layout - CMake handles all installation
+cmake.source-dir = "."
+
+# Enable native CPU optimizations by default
+cmake.define.GGML_NATIVE = "ON"
+# Only build CPU backend
+cmake.define.GGML_CPU = "ON"
+# Build as shared library
+cmake.define.BUILD_SHARED_LIBS = "ON"
+# Disable other backends
+cmake.define.GGML_CUDA = "OFF"
+cmake.define.GGML_METAL = "OFF"
+cmake.define.GGML_VULKAN = "OFF"
+cmake.define.GGML_SYCL = "OFF"
+cmake.define.GGML_HIP = "OFF"
+cmake.define.GGML_OPENCL = "OFF"
+cmake.define.GGML_BLAS = "OFF"
+# Disable tests and examples
+cmake.define.GGML_BUILD_TESTS = "OFF"
+cmake.define.GGML_BUILD_EXAMPLES = "OFF"
