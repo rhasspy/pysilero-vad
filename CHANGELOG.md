@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.3.0
+
+- Use cmake with full optimizations
+
 ## 3.2.0
 
 - Only require SSE2 on x86_64

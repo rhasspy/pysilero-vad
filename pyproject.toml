@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "pysilero-vad"
-version = "3.2.0"
+version = "3.3.0"
 description = "Pre-packaged voice activity detector using silero-vad"
 readme = "README.md"
 license = {text = "MIT"}
@@ -42,14 +42,15 @@ dev = [
 [tool.scikit-build]
 cmake.minimum-version = "3.14"
 cmake.build-type = "Release"
-wheel.packages = ["pysilero_vad"]
-# Include the model file
-wheel.install-dir = "pysilero_vad"
+# Use src layout - CMake handles all installation
+cmake.source-dir = "."
 
 # Enable native CPU optimizations by default
 cmake.define.GGML_NATIVE = "ON"
 # Only build CPU backend
 cmake.define.GGML_CPU = "ON"
+# Build as shared library
+cmake.define.BUILD_SHARED_LIBS = "ON"
 # Disable other backends
 cmake.define.GGML_CUDA = "OFF"
 cmake.define.GGML_METAL = "OFF"

@@ -33,7 +33,16 @@ target_include_directories(silero_vad PRIVATE
 set_target_properties(silero_vad PROPERTIES
     OUTPUT_NAME "silero_vad"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pysilero_vad"
+    # Set RPATH to find GGML libraries in the same package
+    INSTALL_RPATH "$ORIGIN/lib"
+    BUILD_RPATH "$ORIGIN/lib"
+    BUILD_WITH_INSTALL_RPATH FALSE
+    INSTALL_RPATH_USE_LINK_PATH FALSE
+    SKIP_BUILD_RPATH FALSE
 )
+
+# Add linker flag to set RPATH
+target_link_options(silero_vad PRIVATE "-Wl,--disable-new-dtags,-rpath,$ORIGIN/lib")
 
 # Add version and commit info
 target_compile_definitions(silero_vad PRIVATE
@@ -46,9 +55,15 @@ install(TARGETS silero_vad
     COMPONENT python_modules
 )
 
+# Install GGML shared libraries alongside the Python extension
+install(TARGETS ggml ggml-base ggml-cpu
+    LIBRARY DESTINATION pysilero_vad/lib
+    COMPONENT python_modules
+)
+
 # Install Python package files (__init__.py, model file, etc.)
 install(
-    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pysilero_vad/
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/pysilero_vad/
     DESTINATION pysilero_vad
     FILES_MATCHING
     PATTERN "*.py"
