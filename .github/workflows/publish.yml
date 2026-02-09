@@ -9,37 +9,38 @@ on:
 
 jobs:
   build:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest # Linux x86_64
-          - ubuntu-24.04-arm # Linux aarch64
-          - macos-latest # macOS Intel (builds universal2 wheels)
-          - windows-latest # Windows x86_64
+    name: Build source distribution
+    runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.read_ver.outputs.tag }}
       file_ver: ${{ steps.read_ver.outputs.file_ver }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install build tools
-        run: pip install setuptools build cibuildwheel==2.23.2
+        run: pip install build
 
-      - name: Read version from setup.py & verify tag
+      - name: Read version from pyproject.toml & verify tag
         id: read_ver
         if: github.event_name != 'workflow_dispatch' # only check on tag
         shell: python
         run: |
-          import os, sys, re, pathlib
-          text = pathlib.Path("setup.py").read_text()
-          m = re.search(r"version\s*=\s*[\"']([^\"']+)[\"']", text)
-          ver = m.group(1)
+          import os, sys, pathlib, tomllib
+
+          # Read version from pyproject.toml
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+
+          ver = data.get("project", {}).get("version")
+          if not ver:
+              print("Could not find project.version in pyproject.toml", file=sys.stderr)
+              sys.exit(1)
 
           # Extract tag from GITHUB_REF (e.g. "refs/tags/v1.2.3" -> "1.2.3")
           ref = os.environ["GITHUB_REF"]
@@ -51,7 +52,7 @@ jobs:
           tag = ref[len(prefix):]
 
           if tag != ver:
-              print(f"Tag ({tag}) != setup.py ({ver})", file=sys.stderr)
+              print(f"Tag ({tag}) != pyproject.toml ({ver})", file=sys.stderr)
               sys.exit(1)
 
           # Expose outputs
@@ -59,46 +60,40 @@ jobs:
               fh.write(f"tag={tag}\n")
               fh.write(f"file_ver={ver}\n")
 
-          print(f"Version OK: tag={tag} matches setup.py={ver}")
+          print(f"Version OK: tag={tag} matches pyproject.toml={ver}")
 
-      - name: Build wheels
-        run: python -m cibuildwheel --output-dir dist
-        env:
-          # Only build for Python 3.9 we're using the stable ABI
-          CIBW_BUILD: "cp39-*"
-
-          # Linux
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
-          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
-          CIBW_ARCHS: auto64
-
-          # MacOS
-          CIBW_ARCHS_MACOS: arm64
-
-          # std::filesystem needs macOS 10.15+
-          CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=11.0"
-
-          # Windows: default is AMD64; explicit for clarity
-          CIBW_ARCHS_WINDOWS: AMD64
-
-          CIBW_TEST_REQUIRES: pytest
-          CIBW_TEST_COMMAND: python -m pytest -vv {project}/tests
-
-          # Don't build PyPy and MUSL wheels for now
-          CIBW_SKIP: "pp* *-musllinux_*"
-
-      - name: Build sdist (once)
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+      - name: Build sdist
         run: python -m build --sdist
 
-      - name: Upload wheels and sdist
+      - name: Upload sdist
         uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ matrix.os }}
-          path: |
-            dist/*.whl
-            dist/*.tar.gz
+          name: dist
+          path: dist/*.tar.gz
           if-no-files-found: error
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: |
+          pip install scikit-build-core cmake ninja
+          pip install -e .
+
+      - name: Install test dependencies
+        run: pip install pytest
+
+      - name: Run tests
+        run: pytest -vv tests/
 
   changelog:
     needs: build
@@ -169,7 +164,7 @@ jobs:
           path: RELEASE_NOTES.md
 
   publish:
-    needs: [build, changelog]
+    needs: [build, test, changelog]
     runs-on: ubuntu-latest
     if: github.event_name != 'workflow_dispatch' # only publish on tag
     environment: pypi
@@ -177,11 +172,10 @@ jobs:
       id-token: write # required for PyPI Trusted Publishing (OIDC)
       contents: read
     steps:
-      - name: Download all dists
+      - name: Download sdist
         uses: actions/download-artifact@v4
         with:
-          pattern: dist-*
-          merge-multiple: true
+          name: dist
           path: dist
 
       - name: Publish to PyPI via OIDC
@@ -190,17 +184,16 @@ jobs:
           verbose: true
 
   github_release:
-    needs: [build, changelog, publish]
+    needs: [build, test, changelog, publish]
     runs-on: ubuntu-latest
     if: github.event_name != 'workflow_dispatch' # only release on tag
     permissions:
       contents: write
     steps:
-      - name: Download all dists
+      - name: Download sdist
         uses: actions/download-artifact@v4
         with:
-          pattern: dist-*
-          merge-multiple: true
+          name: dist
           path: dist
       - uses: actions/download-artifact@v4
         with:

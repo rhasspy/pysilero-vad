@@ -3,6 +3,7 @@
 ## 3.3.0
 
 - Use cmake with full optimizations
+- Only build sdist now, since optimizations are host-dependent
 
 ## 3.2.0
 
