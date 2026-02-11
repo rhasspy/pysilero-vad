@@ -33,16 +33,24 @@ target_include_directories(silero_vad PRIVATE
 set_target_properties(silero_vad PROPERTIES
     OUTPUT_NAME "silero_vad"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pysilero_vad"
-    # Set RPATH to find GGML libraries in the same package
-    INSTALL_RPATH "$ORIGIN/lib"
-    BUILD_RPATH "$ORIGIN/lib"
     BUILD_WITH_INSTALL_RPATH FALSE
     INSTALL_RPATH_USE_LINK_PATH FALSE
     SKIP_BUILD_RPATH FALSE
 )
 
-# Add linker flag to set RPATH
-target_link_options(silero_vad PRIVATE "-Wl,--disable-new-dtags,-rpath,$ORIGIN/lib")
+# Platform-specific RPATH settings
+if(APPLE)
+    set_target_properties(silero_vad PROPERTIES
+        INSTALL_RPATH "@loader_path/lib"
+        BUILD_RPATH "@loader_path/lib"
+    )
+else()
+    set_target_properties(silero_vad PROPERTIES
+        INSTALL_RPATH "$ORIGIN/lib"
+        BUILD_RPATH "$ORIGIN/lib"
+    )
+    target_link_options(silero_vad PRIVATE "-Wl,--disable-new-dtags,-rpath,$ORIGIN/lib")
+endif()
 
 # Add version and commit info
 target_compile_definitions(silero_vad PRIVATE
