@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "pysilero-vad"
-version = "3.3.0"
+version = "3.3.1"
 description = "Pre-packaged voice activity detector using silero-vad"
 readme = "README.md"
 license = {text = "MIT"}
