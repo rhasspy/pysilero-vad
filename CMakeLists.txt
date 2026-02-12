@@ -6,15 +6,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Find Python
-find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+# Find Python - use SABIModule since this extension uses Py_LIMITED_API (Stable ABI)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development.SABIModule)
 
 # Build GGML as a subdirectory
 # This will respect all GGML_* options passed via cmake.define in pyproject.toml
 add_subdirectory(src/ggml)
 
-# Create the Python extension module
-Python_add_library(silero_vad MODULE WITH_SOABI
+# Create the Python extension module using Stable ABI
+Python3_add_library(silero_vad MODULE WITH_SOABI
     src/py_silero_vad.cpp
 )
 
