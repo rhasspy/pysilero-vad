@@ -13,18 +13,31 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install
+      - name: Install (Unix)
+        if: runner.os != 'Windows'
         run: |
           script/setup --dev
 
-      - name: Run tests
+      - name: Install (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          python script/setup --dev
+
+      - name: Run tests (Unix)
+        if: runner.os != 'Windows'
         run: script/test
+
+      - name: Run tests (Windows)
+        if: runner.os == 'Windows'
+        run: python script/test

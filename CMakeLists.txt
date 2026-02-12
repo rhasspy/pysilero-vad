@@ -6,20 +6,25 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Find Python
-find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+# Find Python - use SABIModule since this extension uses Py_LIMITED_API (Stable ABI)
+find_package(Python COMPONENTS Development.Module Development.SABIModule REQUIRED)
 
 # Build GGML as a subdirectory
 # This will respect all GGML_* options passed via cmake.define in pyproject.toml
 add_subdirectory(src/ggml)
 
-# Create the Python extension module
+# Create the Python extension module using Stable ABI
 Python_add_library(silero_vad MODULE WITH_SOABI
     src/py_silero_vad.cpp
 )
 
-# Link against GGML libraries
-target_link_libraries(silero_vad PRIVATE ggml ggml-base ggml-cpu)
+# Link against Python Stable ABI and GGML libraries
+target_link_libraries(silero_vad PRIVATE
+    Python::SABIModule
+    ggml
+    ggml-base
+    ggml-cpu
+)
 
 # Include directories
 target_include_directories(silero_vad PRIVATE
@@ -38,18 +43,26 @@ set_target_properties(silero_vad PROPERTIES
     SKIP_BUILD_RPATH FALSE
 )
 
-# Platform-specific RPATH settings
-if(APPLE)
+# Platform-specific RPATH settings and library installation
+if(WIN32)
+    # Windows doesn't use RPATH - DLLs are searched in the same directory as the extension
+    # Install GGML DLLs directly alongside the Python extension
+    set(GGML_LIB_DEST pysilero_vad)
+elseif(APPLE)
+    # macOS uses @loader_path
     set_target_properties(silero_vad PROPERTIES
         INSTALL_RPATH "@loader_path/lib"
         BUILD_RPATH "@loader_path/lib"
     )
+    set(GGML_LIB_DEST pysilero_vad/lib)
 else()
+    # Linux uses $ORIGIN
     set_target_properties(silero_vad PROPERTIES
         INSTALL_RPATH "$ORIGIN/lib"
         BUILD_RPATH "$ORIGIN/lib"
     )
     target_link_options(silero_vad PRIVATE "-Wl,--disable-new-dtags,-rpath,$ORIGIN/lib")
+    set(GGML_LIB_DEST pysilero_vad/lib)
 endif()
 
 # Add version and commit info
@@ -60,12 +73,14 @@ target_compile_definitions(silero_vad PRIVATE
 # Install the module
 install(TARGETS silero_vad
     LIBRARY DESTINATION pysilero_vad
+    RUNTIME DESTINATION pysilero_vad  # For Windows DLLs
     COMPONENT python_modules
 )
 
 # Install GGML shared libraries alongside the Python extension
 install(TARGETS ggml ggml-base ggml-cpu
-    LIBRARY DESTINATION pysilero_vad/lib
+    LIBRARY DESTINATION ${GGML_LIB_DEST}
+    RUNTIME DESTINATION ${GGML_LIB_DEST}  # For Windows DLLs
     COMPONENT python_modules
 )
 

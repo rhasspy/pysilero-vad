@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.3.1
+
+- Support Windows build
+- Update test workflow with Windows and MacOS
+
 ## 3.3.0
 
 - Use cmake with full optimizations
