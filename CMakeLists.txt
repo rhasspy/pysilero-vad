@@ -18,8 +18,13 @@ Python3_add_library(silero_vad MODULE WITH_SOABI
     src/py_silero_vad.cpp
 )
 
-# Link against GGML libraries
-target_link_libraries(silero_vad PRIVATE ggml ggml-base ggml-cpu)
+# Link against Python Stable ABI and GGML libraries
+target_link_libraries(silero_vad PRIVATE
+    Python3::SABIModule
+    ggml
+    ggml-base
+    ggml-cpu
+)
 
 # Include directories
 target_include_directories(silero_vad PRIVATE
