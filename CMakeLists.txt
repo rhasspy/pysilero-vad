@@ -57,6 +57,18 @@ elseif(APPLE)
         BUILD_RPATH "@loader_path/lib"
     )
     set(GGML_LIB_DEST pysilero_vad/lib)
+    # The GGML libs also depend on each other (e.g. ggml-cpu needs
+    # ggml-base), so each one needs its own rpath to find its siblings in
+    # the same directory. Relying solely on silero_vad's rpath only works
+    # at runtime via transitive lookup, which auditwheel's dependency
+    # resolver does not perform when repairing the wheel.
+    set_target_properties(ggml ggml-base ggml-cpu PROPERTIES
+        BUILD_WITH_INSTALL_RPATH FALSE
+        INSTALL_RPATH_USE_LINK_PATH FALSE
+        SKIP_BUILD_RPATH FALSE
+        INSTALL_RPATH "@loader_path"
+        BUILD_RPATH "@loader_path"
+    )
 else()
     # Linux uses $ORIGIN
     set_target_properties(silero_vad PROPERTIES
@@ -65,6 +77,14 @@ else()
     )
     target_link_options(silero_vad PRIVATE "-Wl,--disable-new-dtags,-rpath,$ORIGIN/lib")
     set(GGML_LIB_DEST pysilero_vad/lib)
+    # See the APPLE branch above for why the GGML libs need their own rpath.
+    set_target_properties(ggml ggml-base ggml-cpu PROPERTIES
+        BUILD_WITH_INSTALL_RPATH FALSE
+        INSTALL_RPATH_USE_LINK_PATH FALSE
+        SKIP_BUILD_RPATH FALSE
+        INSTALL_RPATH "$ORIGIN"
+        BUILD_RPATH "$ORIGIN"
+    )
 endif()
 
 # Add version and commit info
