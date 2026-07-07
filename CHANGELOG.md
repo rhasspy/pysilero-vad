@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.4.0
+
+- Remove `GGML_NATIVE` in favor of runtime CPU detection
+- Build portable wheels in CI
+
 ## 3.3.1
 
 - Support Windows build
