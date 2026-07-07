@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.26)
 project(pysilero_vad VERSION 3.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -13,8 +13,10 @@ find_package(Python COMPONENTS Development.Module Development.SABIModule REQUIRE
 # This will respect all GGML_* options passed via cmake.define in pyproject.toml
 add_subdirectory(src/ggml)
 
-# Create the Python extension module using Stable ABI
-Python_add_library(silero_vad MODULE WITH_SOABI
+# Create the Python extension module using the Stable ABI (limited API).
+# USE_SABI 3.9 makes CMake target Py_LIMITED_API=0x03090000 and produce an
+# `.abi3.so` suffix, so a single wheel is importable on all CPython 3.9+.
+Python_add_library(silero_vad MODULE WITH_SOABI USE_SABI 3.9
     src/py_silero_vad.cpp
 )
 

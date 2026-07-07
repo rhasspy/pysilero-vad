@@ -40,13 +40,25 @@ dev = [
 ]
 
 [tool.scikit-build]
-cmake.minimum-version = "3.14"
+cmake.version = ">=3.26"
 cmake.build-type = "Release"
 # Use src layout - CMake handles all installation
 cmake.source-dir = "."
 
-# Enable native CPU optimizations by default
-cmake.define.GGML_NATIVE = "ON"
+# Build a single abi3 (stable ABI) wheel that works on CPython 3.9+.
+# Requires the extension to be built with Py_LIMITED_API / USE_SABI (see CMakeLists.txt).
+wheel.py-api = "cp39"
+
+# GGML's CMake install rules also dump headers, a cmake package config, and a
+# duplicate set of shared libs into the wheel/site-packages root. The extension
+# only needs the copies under pysilero_vad/lib (found via its $ORIGIN/lib rpath),
+# so drop the top-level cruft to keep the wheel clean and collision-free.
+wheel.exclude = ["include/**", "lib/**"]
+
+# Do NOT enable -march=native: the sdist/wheel is built on a host whose CPU may
+# have instructions the target lacks (e.g. Raspberry Pi 4B), which causes SIGILL
+# at runtime. Build a portable, generic binary instead. See home-assistant/addons#4694.
+cmake.define.GGML_NATIVE = "OFF"
 # Only build CPU backend
 cmake.define.GGML_CPU = "ON"
 # Build as shared library
@@ -62,3 +74,15 @@ cmake.define.GGML_BLAS = "OFF"
 # Disable tests and examples
 cmake.define.GGML_BUILD_TESTS = "OFF"
 cmake.define.GGML_BUILD_EXAMPLES = "OFF"
+
+[tool.cibuildwheel]
+# The extension uses the stable ABI, so one wheel per platform (built on the
+# oldest supported CPython) covers all of 3.9+. No per-version builds needed.
+build = "cp39-*"
+build-frontend = "build"
+# Newer manylinux images ship a compiler with full C++20 support (GGML needs it).
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+# Smoke-test the produced wheel: loading the model exercises the CPU backend
+# init path that was raising SIGILL, and process_chunk exercises compute.
+test-command = "python -c \"from pysilero_vad import SileroVoiceActivityDetector as V; d=V(); print(d(bytes(d.chunk_bytes())))\""

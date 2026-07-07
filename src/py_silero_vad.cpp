@@ -1,6 +1,8 @@
 // src/py_silero_vad.c
 
+#ifndef Py_LIMITED_API
 #define Py_LIMITED_API 0x03090000
+#endif
 #include <Python.h>
 #include <stdint.h>
 
