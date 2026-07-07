@@ -95,6 +95,37 @@ jobs:
       - name: Run tests
         run: pytest -vv tests/
 
+  build_wheels:
+    name: Build abi3 wheel on ${{ matrix.os }}
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Native runners per platform. Because the extension is abi3, a single
+        # cp39 wheel per platform covers CPython 3.9+ (see [tool.cibuildwheel]).
+        os:
+          - ubuntu-latest       # linux x86_64
+          - ubuntu-24.04-arm    # linux aarch64 (e.g. Raspberry Pi 4B, 64-bit)
+          - macos-13            # macOS x86_64
+          - macos-14            # macOS arm64
+          - windows-latest      # windows AMD64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Pin cibuildwheel to a known-good release; bump deliberately.
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.23.3
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-${{ matrix.os }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+
   changelog:
     needs: build
     runs-on: ubuntu-latest
@@ -164,7 +195,7 @@ jobs:
           path: RELEASE_NOTES.md
 
   publish:
-    needs: [build, test, changelog]
+    needs: [build, build_wheels, test, changelog]
     runs-on: ubuntu-latest
     if: github.event_name != 'workflow_dispatch' # only publish on tag
     environment: pypi
@@ -178,13 +209,20 @@ jobs:
           name: dist
           path: dist
 
+      - name: Download wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cibw-wheels-*
+          path: dist
+          merge-multiple: true
+
       - name: Publish to PyPI via OIDC
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
 
   github_release:
-    needs: [build, test, changelog, publish]
+    needs: [build, build_wheels, test, changelog, publish]
     runs-on: ubuntu-latest
     if: github.event_name != 'workflow_dispatch' # only release on tag
     permissions:
@@ -195,6 +233,12 @@ jobs:
         with:
           name: dist
           path: dist
+      - name: Download wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cibw-wheels-*
+          path: dist
+          merge-multiple: true
       - uses: actions/download-artifact@v4
         with:
           name: release-notes
