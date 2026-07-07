@@ -107,8 +107,7 @@ jobs:
         os:
           - ubuntu-latest       # linux x86_64
           - ubuntu-24.04-arm    # linux aarch64 (e.g. Raspberry Pi 4B, 64-bit)
-          - macos-13            # macOS x86_64
-          - macos-14            # macOS arm64
+          - macos-latest        # macOS arm64
           - windows-latest      # windows AMD64
     steps:
       - uses: actions/checkout@v4
