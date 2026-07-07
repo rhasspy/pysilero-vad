@@ -59,6 +59,13 @@ wheel.exclude = ["include/**", "lib/**"]
 # have instructions the target lacks (e.g. Raspberry Pi 4B), which causes SIGILL
 # at runtime. Build a portable, generic binary instead. See home-assistant/addons#4694.
 cmake.define.GGML_NATIVE = "OFF"
+# GGML's non-native x86 baseline still defaults BMI2 on. Its only use in the CPU
+# backend is _pdep_u64 in the IQ1 dot-product kernels (an ultra-low-bit quant
+# format this project's model never uses), which fails to build on 32-bit
+# Windows (no 64-bit pdep in 32-bit mode) and on manylinux_2_28's GCC (missing
+# intrinsic declaration despite -mbmi2). There's a non-BMI2 fallback path, so
+# just disable it.
+cmake.define.GGML_BMI2 = "OFF"
 # Only build CPU backend
 cmake.define.GGML_CPU = "ON"
 # Build as shared library
