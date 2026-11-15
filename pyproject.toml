@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "pysilero-vad"
-version = "3.4.0"
+version = "3.4.1"
 description = "Pre-packaged voice activity detector using silero-vad"
 readme = "README.md"
 license = {text = "MIT"}
@@ -53,12 +53,15 @@ wheel.py-api = "cp39"
 # duplicate set of shared libs into the wheel/site-packages root. The extension
 # only needs the copies under pysilero_vad/lib (found via its $ORIGIN/lib rpath),
 # so drop the top-level cruft to keep the wheel clean and collision-free.
-wheel.exclude = ["include/**", "lib/**"]
+wheel.exclude = ["include/**", "lib/**", "lib64/**", "bin/**"]
 
 # Do NOT enable -march=native: the sdist/wheel is built on a host whose CPU may
 # have instructions the target lacks (e.g. Raspberry Pi 4B), which causes SIGILL
-# at runtime. Build a portable, generic binary instead. See home-assistant/addons#4694.
+# at runtime. See home-assistant/addons#4694. On 64-bit x86 and Linux ARM64,
+# CMakeLists.txt builds GGML's CPU backend once per instruction level and the
+# best one for the CPU is loaded at import (GGML_CPU_ALL_VARIANTS).
 cmake.define.GGML_NATIVE = "OFF"
+# For the single-backend builds (32-bit x86, macOS, Windows ARM):
 # GGML's non-native x86 baseline still defaults BMI2 on. Its only use in the CPU
 # backend is _pdep_u64 in the IQ1 dot-product kernels (an ultra-low-bit quant
 # format this project's model never uses), which fails to build on 32-bit
@@ -92,4 +95,4 @@ manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
 # Smoke-test the produced wheel: loading the model exercises the CPU backend
 # init path that was raising SIGILL, and process_chunk exercises compute.
-test-command = "python -c \"from pysilero_vad import SileroVoiceActivityDetector as V; d=V(); print(d(bytes(d.chunk_bytes())))\""
+test-command = "python -c \"import pysilero_vad; from pysilero_vad import SileroVoiceActivityDetector as V; print(pysilero_vad.CPU_FEATURES); d=V(); print(d(bytes(d.chunk_bytes())))\""

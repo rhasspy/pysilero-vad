@@ -5,12 +5,20 @@ from pathlib import Path
 from typing import Final, Iterable, Union
 
 # pylint: disable=no-name-in-module
+from .silero_vad import load_backends as _load_backends
 from .silero_vad import load_model as _load_model
 from .silero_vad import process_chunk as _process_chunk
 from .silero_vad import reset as _reset
 
 _MAX_WAV: Final = 32767
 _DIR = Path(__file__).parent
+
+# GGML's CPU backend, built for each instruction level: the best one this CPU
+# runs is loaded (lib/ on Linux and macOS, next to the module on Windows).
+# CPU_FEATURES: the instruction sets it uses, e.g. "SSE3 SSSE3 AVX AVX2 F16C FMA".
+CPU_FEATURES: Final = _load_backends(
+    str(_DIR / "lib") if (_DIR / "lib").is_dir() else str(_DIR)
+)
 _DEFAULT_MODEL_PATH = _DIR / "ggml-silero-v6.2.0.bin"
 _CHUNK_SAMPLES: Final = 512
 _CHUNK_BYTES: Final = _CHUNK_SAMPLES * 2  # 16-bit

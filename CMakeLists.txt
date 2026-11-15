@@ -9,9 +9,48 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 # Find Python - use SABIModule since this extension uses Py_LIMITED_API (Stable ABI)
 find_package(Python COMPONENTS Development.Module Development.SABIModule REQUIRED)
 
+# CPU instructions are picked at runtime where GGML can: its CPU backend is
+# built once per instruction level (x86-64: SSE2, SSE4.2, AVX, AVX2, AVX-512...;
+# Linux ARM64: ARMv8.0 up to SVE/SME) and the best one the CPU has is loaded
+# when the module is imported. A single non-native build would bake in one
+# level: GGML_NATIVE=OFF still means AVX2/FMA/F16C on x86-64, which crashed
+# with SIGILL on CPUs without them (Celeron, Atom, pre-Haswell).
+#
+# 32-bit x86 can't build the AVX2 variant (64-bit pdep), and GGML has no
+# variants for ARM outside Linux/macOS: those get one baseline build.
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64|i[3-6]86|x86)$")
+    set(PYSILERO_X86 ON)
+endif()
+if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND (PYSILERO_X86 OR (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")))
+    set(PYSILERO_CPU_VARIANTS ON)
+    set(GGML_BACKEND_DL ON CACHE BOOL "" FORCE)
+    set(GGML_CPU_ALL_VARIANTS ON CACHE BOOL "" FORCE)
+    # Where GGML writes the backend modules it builds (it requires one).
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+elseif(PYSILERO_X86)
+    foreach(feat SSE42 AVX AVX2 FMA F16C BMI2)
+        set(GGML_${feat} OFF CACHE BOOL "" FORCE)
+    endforeach()
+endif()
+
 # Build GGML as a subdirectory
 # This will respect all GGML_* options passed via cmake.define in pyproject.toml
 add_subdirectory(src/ggml)
+
+# The CPU backend's libraries: one per variant, or the one ggml-cpu.
+if(PYSILERO_CPU_VARIANTS)
+    get_property(_ggml_targets DIRECTORY src/ggml/src PROPERTY BUILDSYSTEM_TARGETS)
+    set(GGML_CPU_TARGETS)
+    foreach(_target IN LISTS _ggml_targets)
+        get_target_property(_type ${_target} TYPE)
+        if(_target MATCHES "^ggml-cpu-" AND _type STREQUAL "MODULE_LIBRARY")
+            list(APPEND GGML_CPU_TARGETS ${_target})
+        endif()
+    endforeach()
+    message(STATUS "pysilero-vad CPU backends: ${GGML_CPU_TARGETS}")
+else()
+    set(GGML_CPU_TARGETS ggml-cpu)
+endif()
 
 # Create the Python extension module using the Stable ABI (limited API).
 # USE_SABI 3.9 makes CMake target Py_LIMITED_API=0x03090000 and produce an
@@ -20,13 +59,16 @@ Python_add_library(silero_vad MODULE WITH_SOABI USE_SABI 3.9
     src/py_silero_vad.cpp
 )
 
-# Link against Python Stable ABI and GGML libraries
+# Link against Python Stable ABI and GGML libraries. With the variants, the
+# CPU backend isn't linked: load_backends() loads it from the package.
 target_link_libraries(silero_vad PRIVATE
     Python::SABIModule
     ggml
     ggml-base
-    ggml-cpu
 )
+if(NOT PYSILERO_CPU_VARIANTS)
+    target_link_libraries(silero_vad PRIVATE ggml-cpu)
+endif()
 
 # Include directories
 target_include_directories(silero_vad PRIVATE
@@ -62,7 +104,7 @@ elseif(APPLE)
     # the same directory. Relying solely on silero_vad's rpath only works
     # at runtime via transitive lookup, which auditwheel's dependency
     # resolver does not perform when repairing the wheel.
-    set_target_properties(ggml ggml-base ggml-cpu PROPERTIES
+    set_target_properties(ggml ggml-base ${GGML_CPU_TARGETS} PROPERTIES
         BUILD_WITH_INSTALL_RPATH FALSE
         INSTALL_RPATH_USE_LINK_PATH FALSE
         SKIP_BUILD_RPATH FALSE
@@ -78,7 +120,7 @@ else()
     target_link_options(silero_vad PRIVATE "-Wl,--disable-new-dtags,-rpath,$ORIGIN/lib")
     set(GGML_LIB_DEST pysilero_vad/lib)
     # See the APPLE branch above for why the GGML libs need their own rpath.
-    set_target_properties(ggml ggml-base ggml-cpu PROPERTIES
+    set_target_properties(ggml ggml-base ${GGML_CPU_TARGETS} PROPERTIES
         BUILD_WITH_INSTALL_RPATH FALSE
         INSTALL_RPATH_USE_LINK_PATH FALSE
         SKIP_BUILD_RPATH FALSE
@@ -100,7 +142,7 @@ install(TARGETS silero_vad
 )
 
 # Install GGML shared libraries alongside the Python extension
-install(TARGETS ggml ggml-base ggml-cpu
+install(TARGETS ggml ggml-base ${GGML_CPU_TARGETS}
     LIBRARY DESTINATION ${GGML_LIB_DEST}
     RUNTIME DESTINATION ${GGML_LIB_DEST}  # For Windows DLLs
     COMPONENT python_modules

@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.4.1
+
+- Pick CPU instructions at runtime on 64-bit x86 and Linux ARM64: GGML's CPU backend is built for each instruction level and the best one for the CPU is loaded. 3.4.0 required AVX2/FMA/F16C on x86-64 and crashed with SIGILL without them
+- 32-bit x86 is built for SSE2
+- `pysilero_vad.CPU_FEATURES`: the instruction sets the loaded backend uses
+- Leave GGML's duplicate `lib64/` libraries out of the wheel
+
 ## 3.4.0
 
 - Remove `GGML_NATIVE` in favor of runtime CPU detection

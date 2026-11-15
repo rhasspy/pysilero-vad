@@ -167,9 +167,73 @@ static PyObject *py_silero_vad_process_chunk(PyObject *self, PyObject *args) {
     return result;
 }
 
+// ---- load_backends(dir: str) -> str ----
+//
+// Builds with one CPU backend per instruction level (GGML_BACKEND_DL) don't
+// link one: this loads the best one the CPU can run from ``dir``. A no-op once
+// a CPU backend is registered, or when one is linked in. Returns the
+// instruction sets it uses.
+
+// GGML's log while loading: warnings and errors only, not the "loaded CPU
+// backend from ..." it says on every import.
+static enum ggml_log_level quiet_log_last = GGML_LOG_LEVEL_NONE;
+
+static void quiet_log(enum ggml_log_level level, const char *text, void *user_data) {
+    (void)user_data;
+    if (level != GGML_LOG_LEVEL_CONT) {
+        quiet_log_last = level;
+    }
+    if (quiet_log_last >= GGML_LOG_LEVEL_WARN) {
+        fputs(text, stderr);
+        fflush(stderr);
+    }
+}
+
+static PyObject *py_silero_vad_load_backends(PyObject *self, PyObject *args) {
+    (void)self;
+    const char *dir = NULL;
+
+    if (!PyArg_ParseTuple(args, "s", &dir)) {
+        return NULL;
+    }
+
+    if (ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU) == NULL) {
+        ggml_log_set(quiet_log, NULL);
+        ggml_backend_load_all_from_path(dir);
+        ggml_log_set(NULL, NULL);  // GGML's own logger again
+    }
+
+    ggml_backend_dev_t dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
+    if (dev == NULL) {
+        PyErr_Format(PyExc_OSError, "No CPU backend for this CPU in '%s'", dir);
+        return NULL;
+    }
+
+    // What it was built with, e.g. "SSE3 SSSE3 AVX AVX2 F16C FMA BMI2".
+    std::string features;
+    ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
+    auto get_features = (ggml_backend_get_features_t)ggml_backend_reg_get_proc_address(
+        reg, "ggml_backend_get_features");
+    if (get_features) {
+        for (ggml_backend_feature *f = get_features(reg); f->name; f++) {
+            if (strcmp(f->value, "1") != 0) {
+                continue;
+            }
+            if (!features.empty()) {
+                features += " ";
+            }
+            features += f->name;
+        }
+    }
+
+    return PyUnicode_FromString(features.c_str());
+}
+
 // ---- Module definition ----
 
 static PyMethodDef silero_vad_methods[] = {
+    {"load_backends", (PyCFunction)py_silero_vad_load_backends, METH_VARARGS,
+     "Load the best CPU backend for this CPU from a directory, if none is linked."},
     {"load_model", (PyCFunction)py_silero_vad_load_model, METH_VARARGS,
      "Load a Silero VAD ggml model from a file and return a context capsule."},
     {"reset", (PyCFunction)py_silero_vad_reset, METH_VARARGS,

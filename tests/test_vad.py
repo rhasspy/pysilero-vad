@@ -57,3 +57,10 @@ def test_invalid_chunk_size() -> None:
         vad.process_samples(
             [0.0 for _ in range(SileroVoiceActivityDetector.chunk_samples() // 2)]
         )
+
+
+def test_cpu_features() -> None:
+    """A CPU backend is loaded, and says what it was built with."""
+    import pysilero_vad  # pylint: disable=import-outside-toplevel
+
+    assert isinstance(pysilero_vad.CPU_FEATURES, str)
