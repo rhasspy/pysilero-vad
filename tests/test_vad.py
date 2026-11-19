@@ -59,6 +59,36 @@ def test_invalid_chunk_size() -> None:
         )
 
 
+@pytest.mark.parametrize("num_chunks", [1, 2, 5])
+def test_process_chunks_exact(num_chunks: int) -> None:
+    """Audio of exactly N chunks gives N probabilities, including the last."""
+    chunk_bytes = SileroVoiceActivityDetector.chunk_bytes()
+    audio = _load_wav(_DIR / "speech.wav")[: chunk_bytes * num_chunks]
+    assert len(audio) == chunk_bytes * num_chunks
+
+    vad = SileroVoiceActivityDetector()
+    probs = list(vad.process_chunks(audio))
+    assert len(probs) == num_chunks
+
+    # Same as processing each chunk in turn
+    vad.reset()
+    expected = [
+        vad(audio[i : i + chunk_bytes]) for i in range(0, len(audio), chunk_bytes)
+    ]
+    assert probs == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("num_chunks", [1, 2, 5])
+@pytest.mark.parametrize("extra_bytes", [2, 512, 1022])
+def test_process_chunks_partial(num_chunks: int, extra_bytes: int) -> None:
+    """A partial chunk at the end of the audio is ignored."""
+    chunk_bytes = SileroVoiceActivityDetector.chunk_bytes()
+    audio = bytes(chunk_bytes * num_chunks + extra_bytes)
+
+    vad = SileroVoiceActivityDetector()
+    assert len(list(vad.process_chunks(audio))) == num_chunks
+
+
 def test_cpu_features() -> None:
     """A CPU backend is loaded, and says what it was built with."""
     import pysilero_vad  # pylint: disable=import-outside-toplevel
