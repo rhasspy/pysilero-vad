@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.4.2
+
+- Fix `process_chunks` skipping the last chunk when the audio is an exact multiple of 512 samples (e.g., one chunk gave no probabilities)
+
 ## 3.4.1
 
 - Pick CPU instructions at runtime on 64-bit x86 and Linux ARM64: GGML's CPU backend is built for each instruction level and the best one for the CPU is loaded. 3.4.0 required AVX2/FMA/F16C on x86-64 and crashed with SIGILL without them

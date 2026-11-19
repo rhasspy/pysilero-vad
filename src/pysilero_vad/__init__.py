@@ -90,6 +90,8 @@ class SileroVoiceActivityDetector:
         """Return probability of speech in audio [0-1] for each chunk of audio.
 
         Audio must be 16Khz 16-bit mono PCM.
+        One probability is returned for each full chunk of 512 samples;
+        a partial chunk at the end is ignored.
         """
         if len(audio) < _CHUNK_BYTES:
             # Window size is fixed at 512 samples in v5
@@ -98,6 +100,6 @@ class SileroVoiceActivityDetector:
         num_audio_bytes = len(audio)
         audio_idx = 0
 
-        while (audio_idx + _CHUNK_BYTES) < num_audio_bytes:
+        while (audio_idx + _CHUNK_BYTES) <= num_audio_bytes:
             yield self.process_chunk(audio[audio_idx : audio_idx + _CHUNK_BYTES])
             audio_idx += _CHUNK_BYTES
